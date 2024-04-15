@@ -1,5 +1,5 @@
 # pygame_1
 
-#Collaborators
+# Collaborators
 Zuzanna Chadzinska
 Liam Doyle
