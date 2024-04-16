@@ -127,11 +127,6 @@ class Player(pygame.sprite.Sprite):
                 else:
                     self.surf = self.images_left[self.index]
 
-    def change_frames(counter, index, direction):
-        # put the changing frames during animation logic here
-        pass
-
-
         self.fall()
 
     def jump(self):
@@ -144,6 +139,11 @@ class Player(pygame.sprite.Sprite):
                 return
         if not self.jumping:
             self.rect.move_ip(0, 1)
+
+    def change_frames(counter, index, direction):
+        # put the changing frames during animation logic here
+        pass
+
 
 player = Player()
 
