@@ -93,14 +93,22 @@ class Player(pygame.sprite.Sprite):
         if pressed_keys[K_RIGHT]:
             self.rect.move_ip(2, 0)
 
+        self.fall()
+
     def jump(self):
         if not self.jumping:
             self.jumping = True
 
+    def fall(self):
+        for tile in world.tile_list:
+            if tile[1].colliderect(self.rect):
+                return
+        if not self.jumping:
+            self.rect.move_ip(0, 1)
+
 player = Player()
 
 all_sprites = pygame.sprite.Group()
-
 
 # Game loop. The code from here on is mainly event handling.
 running = True
