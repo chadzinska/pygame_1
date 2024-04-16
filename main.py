@@ -70,7 +70,18 @@ world = World(world_data)
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super(Player, self).__init__()
-        self.surf = pygame.image.load("images/lil_guy.png").convert()
+        self.images_right = []
+        self.images_left = []
+        self.index = 0
+        self.counter = 0
+        self.direction = 0
+        # loop below loads in images for animation
+        for i in range(1, 5):
+            img_right = pygame.image.load(f"images/guy{i}.png").convert()
+            img_left = pygame.transform.flip(img_right, True, False)
+            self.images_right.append(img_right)
+            self.images_left.append(img_left)
+        self.surf = self.images_right[self.index]
         self.surf.set_colorkey((255, 255, 255), RLEACCEL) # makes the background of the player image transparent. RLEACCEL flag optimises this on lower-performing hardware (https://www.pygame.org/docs/ref/surface.html)
         self.rect = self.surf.get_rect() 
         self.jumping = False
@@ -79,6 +90,7 @@ class Player(pygame.sprite.Sprite):
         self.jump_speed = 4
 
     def update(self, pressed_keys):
+        walk_speed = 15
         if pressed_keys[K_UP]:
             self.jump()
         if self.jumping:
@@ -90,8 +102,35 @@ class Player(pygame.sprite.Sprite):
                 self.jump_count = 0
         if pressed_keys[K_LEFT]:
             self.rect.move_ip(-2, 0)
+            self.counter += 1
+            self.direction = 1
         if pressed_keys[K_RIGHT]:
             self.rect.move_ip(2, 0)
+            self.counter += 1
+            self.direction = 0
+
+        if not pressed_keys[K_RIGHT] and not pressed_keys[K_LEFT]:
+            self.index = 0
+            self.counter = 0
+            if self.direction == 0:
+                self.surf = self.images_right[self.index]
+            else:
+                self.surf = self.images_left[self.index]
+        
+        if self.counter > walk_speed:
+                self.counter = 0
+                self.index += 1
+                if self.index >= len(self.images_right):
+                    self.index = 0
+                if self.direction == 0:
+                    self.surf = self.images_right[self.index]
+                else:
+                    self.surf = self.images_left[self.index]
+
+    def change_frames(counter, index, direction):
+        # put the changing frames during animation logic here
+        pass
+
 
         self.fall()
 
