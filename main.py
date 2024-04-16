@@ -15,7 +15,8 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # load images
 background_image = pygame.image.load("images/background.png")
-dirt_image = pygame.image.load("images/dirt_placeholder.png")
+dirt_image = pygame.image.load("images/dirt.png")
+grass_image = pygame.image.load("images/grass.png")
 
 fps = 60
 
@@ -37,8 +38,11 @@ class World():
         for row in data:
             col_count = 0
             for tile in row:
-                if tile == 1:
-                    img = pygame.transform.scale(dirt_image, (tile_size, tile_size))
+                if tile >= 1:
+                    if tile == 1:
+                        img = pygame.transform.scale(dirt_image, (tile_size, tile_size))
+                    elif tile == 2:
+                        img = pygame.transform.scale(grass_image, (tile_size, tile_size))
                     img_rect = img.get_rect()
                     img_rect.x = col_count * tile_size
                     img_rect.y = row_count * tile_size
@@ -59,10 +63,10 @@ world_data = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1],
+    [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2],
+    [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 1, 1],
 ]
 
 world = World(world_data)
@@ -70,29 +74,41 @@ world = World(world_data)
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super(Player, self).__init__()
+        # animation variables
         self.images_right = []
         self.images_left = []
         self.index = 0
         self.counter = 0
-        self.direction = 0
+        self.direction = 1
         # loop below loads in images for animation
-        for i in range(1, 5):
+        for i in range(1, 4):
             img_right = pygame.image.load(f"images/guy{i}.png").convert()
             img_left = pygame.transform.flip(img_right, True, False)
+            img_right.set_colorkey((0, 0, 0), pygame.RLEACCEL) # makes the background of the player image transparent. RLEACCEL flag optimises this on lower-performing hardware (https://www.pygame.org/docs/ref/surface.html)
+            img_left.set_colorkey((0, 0, 0), pygame.RLEACCEL)
             self.images_right.append(img_right)
             self.images_left.append(img_left)
         self.surf = self.images_right[self.index]
-        self.surf.set_colorkey((255, 255, 255), RLEACCEL) # makes the background of the player image transparent. RLEACCEL flag optimises this on lower-performing hardware (https://www.pygame.org/docs/ref/surface.html)
         self.rect = self.surf.get_rect() 
+        # jumping variables
         self.jumping = False
         self.jump_height = 60
         self.jump_count = 0
         self.jump_speed = 4
+        self.width = self.surf.get_width()
+        self.height = self.surf.get_height()
+        self.topleft = (self.rect.x, self.rect.y)
+        self.topright = ((self.rect.x + self.width), self.rect.y)
+        self.bottomleft = (self.rect.x, (self.rect.y - self.height))
+        self.bottomright = ((self.rect.x + self.width), (self.rect.y - self.height))
 
     def update(self, pressed_keys):
-        walk_speed = 15
-        if pressed_keys[K_UP]:
+        animation_speed = 15
+
+        if pressed_keys[K_SPACE]:
             self.jump()
+            self.change_frames(2) # jumping animation, using same as peak walking for now might change
+
         if self.jumping:
             if self.jump_count < self.jump_height:
                 self.rect.move_ip(0, -self.jump_speed)
@@ -100,34 +116,49 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.jumping = False
                 self.jump_count = 0
+
         if pressed_keys[K_LEFT]:
             self.rect.move_ip(-2, 0)
             self.counter += 1
-            self.direction = 1
+            self.direction = -1
+
         if pressed_keys[K_RIGHT]:
             self.rect.move_ip(2, 0)
             self.counter += 1
-            self.direction = 0
+            self.direction = 1
 
-        if not pressed_keys[K_RIGHT] and not pressed_keys[K_LEFT]:
+        if not pressed_keys[K_RIGHT] and not pressed_keys[K_LEFT] and not pressed_keys[K_SPACE]:
+            # if not moving sets animation frame to 0
             self.index = 0
             self.counter = 0
-            if self.direction == 0:
-                self.surf = self.images_right[self.index]
-            else:
-                self.surf = self.images_left[self.index]
+            self.change_frames()
         
-        if self.counter > walk_speed:
+        # makes animation run at animation_speed
+        if self.counter > animation_speed:
                 self.counter = 0
                 self.index += 1
                 if self.index >= len(self.images_right):
                     self.index = 0
-                if self.direction == 0:
-                    self.surf = self.images_right[self.index]
-                else:
-                    self.surf = self.images_left[self.index]
+                self.change_frames()
 
         self.fall()
+        # doesnt work might come back to it
+        # # constantly updated variables for easy access to coordinates
+        # self.topleft = (self.rect.x, self.rect.y)
+        # self.topright = ((self.rect.x + self.width), self.rect.y)
+        # self.bottomleft = (self.rect.x, (self.rect.y - self.height))
+        # self.bottomright = ((self.rect.x + self.width), (self.rect.y - self.height))
+
+    def change_frames(self, index = None):
+        """Changes current player based on whether turned left or right.
+        Optional index argument, if none provided self.index is used"""
+        if index == None:
+            index = self.index
+        if self.direction == 1:
+            self.surf = self.images_right[index]
+        else:
+            self.surf = self.images_left[index]
+    
 
     def jump(self):
         if not self.jumping:
@@ -135,15 +166,14 @@ class Player(pygame.sprite.Sprite):
 
     def fall(self):
         for tile in world.tile_list:
-            if tile[1].colliderect(self.rect):
-                return
+            curr_tile_rect = tile[1]
+            if curr_tile_rect.colliderect(self.rect):
+                if curr_tile_rect.collidepoint((self.rect.left, self.rect.bottom)):
+                    if self.rect.left < curr_tile_rect[0]:
+                        self.rect.left = curr_tile_rect[0]
+                    return
         if not self.jumping:
-            self.rect.move_ip(0, 1)
-
-    def change_frames(counter, index, direction):
-        # put the changing frames during animation logic here
-        pass
-
+            self.rect.move_ip(0, 2) #made it 2 cause superslow falling was annoying me
 
 player = Player()
 
