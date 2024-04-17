@@ -122,7 +122,7 @@ class Player(pygame.sprite.Sprite):
         # animation variables
         self.images_right = []
         self.images_left = []
-        self.animation_speed = 15
+        self.animation_speed = 5
         self.index = 0
         self.walk_counter = 0
         self.direction = 1
@@ -209,6 +209,14 @@ class Player(pygame.sprite.Sprite):
                     ''' note to self for future 
                     use elif if you don't want the second condition to execute immediately after the first
                     '''
+        if self.rect.x <= 0: # Establishes borders on the game map
+            self.rect.x = 0
+        if self.rect.x >= SCREEN_WIDTH - self.width:
+            self.rect.x = SCREEN_WIDTH - self.width
+        global game_state # has to be declared as global here for some reason
+        if self.rect.y > SCREEN_HEIGHT:
+            self.kill()
+            game_state = 'game-over'
 
         self.rect.x += dx
         self.rect.y += dy
