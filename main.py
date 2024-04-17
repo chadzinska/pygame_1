@@ -81,6 +81,13 @@ class World():
                 elif tile == 3:
                     enemy = Enemy((col_count * tile_size + 8), (row_count * tile_size + 15))
                     all_sprites.add(enemy)
+                # elif tile == 9:
+                #     img = pygame.image.load("images/door.png").convert()
+                #     img_rect = img.get_rect()
+                #     img_rect.x = col_count * tile_size
+                #     img_rect.y = row_count * tile_size - 25
+                #     tile = (img, img_rect)
+                #     self.tile_list.append(tile)
                 col_count += 1
             row_count += 1
 
@@ -118,6 +125,24 @@ class Enemy(pygame.sprite.Sprite):
     def take_damage(self, damage):
         self.health -= damage
 
+class Heart(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Heart, self).__init__()
+        self.image = pygame.image.load("images/heart.png").convert_alpha()
+        self.image.set_colorkey((0,0,0,0), pygame.RLEACCEL)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        all_sprites.add(self)
+
+class Exit(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Exit, self).__init__()
+        self.image = pygame.image.load("images/door.png").convert()
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        all_sprites.add(self)
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -154,6 +179,14 @@ class Player(pygame.sprite.Sprite):
         self.width = self.surf.get_width()
         self.height = self.surf.get_height()
 
+        #health
+        self.health = 3
+        self.heart_1 = Heart(SCREEN_WIDTH - 100, 5)
+        self.heart_2 = Heart(SCREEN_WIDTH - 65, 5)
+        self.heart_3 = Heart(SCREEN_WIDTH - 30, 5)
+            
+        
+
 
     def update(self, pressed_keys):
         dx = 0
@@ -182,6 +215,13 @@ class Player(pygame.sprite.Sprite):
             self.walk_counter = 0
             self.change_frames()
         
+        #health
+        if self.health < 3:
+            self.heart_3.image = pygame.image.load("images/heart_gone.png").convert_alpha()    
+            if self.health < 2:
+                self.heart_2.image = pygame.image.load("images/heart_gone.png").convert_alpha()
+        
+
         # makes animation run at self.animation_speed
         if self.walk_counter > self.animation_speed:
                 self.walk_counter = 0
@@ -294,10 +334,21 @@ class GameOverMenu():
         screen.blit(start_button, (SCREEN_WIDTH/2 - start_button.get_width()/2, SCREEN_HEIGHT/2 + start_button.get_height()/2))
         pygame.display.update()
 
+class WonMenu():
+     def __init__(self):
+        screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
+        font = pygame.font.SysFont('arial', 40)
+        title = font.render('You won!', True, (0,0,0))
+        start_button = font.render('Press space to restart', True, (0,0,0))
+        screen.blit(title, (SCREEN_WIDTH/2 - title.get_width()/2, SCREEN_HEIGHT/2 - title.get_height()/2))
+        screen.blit(start_button, (SCREEN_WIDTH/2 - start_button.get_width()/2, SCREEN_HEIGHT/2 + start_button.get_height()/2))
+        pygame.display.update()
+
 
 all_sprites = pygame.sprite.Group() # A container class to hold and manage multiple Sprite objects. https://www.pygame.org/docs/ref/sprite.html#pygame.sprite.Group
 
 world = World(world_data)
+exit = Exit(0, 25)
 
 game_state = 'start'
 # Game loop. The code from here on is mainly event handling.
@@ -336,6 +387,20 @@ while running:
             if event.type == QUIT:
                 running = False
 
+    elif game_state == 'win':
+        WonMenu()
+        for event in pygame.event.get():
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    running = False
+                
+                if event.key == K_SPACE:
+                    player = Player(100, 200)
+                    game_state = 'game'
+
+            if event.type == QUIT:
+                running = False
+
     elif game_state == 'game':
         screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
 
@@ -347,6 +412,10 @@ while running:
 
             if event.type == QUIT:
                 running = False
+        
+        if player.rect.colliderect(exit):
+            game_state = 'win'
+
 
         pressed_keys = pygame.key.get_pressed()
 
@@ -359,6 +428,7 @@ while running:
         all_sprites.draw(screen)
 
         world.draw()
+        screen.blit(exit.image, exit.rect)
 
         draw_grid()
         debugger.update(pressed_keys)
