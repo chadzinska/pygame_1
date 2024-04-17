@@ -42,13 +42,13 @@ class Debugger():
         self.autocounter = 0
 
     def debug_manual(self):
-        print(player.rect.x)
+        print("whatever you want to check")
 
     def debug_auto(self):
         if self.autocounter < self.rate:
                 self.autocounter += 1
         else:
-            print(player.rect.y, SCREEN_HEIGHT)
+            print("whatever you want to check")
             self.autocounter = 0
 
     def update(self, pressed_keys):
@@ -57,7 +57,7 @@ class Debugger():
         if pressed_keys[K_z] and self.man_enabled == True:
             self.debug_manual()
     
-debugger = Debugger(False, False)
+debugger = Debugger(True, False)
 
 
 class World():
@@ -122,7 +122,7 @@ class Player(pygame.sprite.Sprite):
         # animation variables
         self.images_right = []
         self.images_left = []
-        self.animation_speed = 5 #lower is faster
+        self.animation_speed = 15
         self.index = 0
         self.walk_counter = 0
         self.direction = 1
@@ -151,7 +151,6 @@ class Player(pygame.sprite.Sprite):
         self.width = self.surf.get_width()
         self.height = self.surf.get_height()
 
-
     def update(self, pressed_keys):
         dx = 0
         dy = 0
@@ -171,7 +170,7 @@ class Player(pygame.sprite.Sprite):
             self.direction = 1
 
         if pressed_keys[K_SPACE]:
-            attack = Attack(player.rect.x, player.rect.y, player.direction)
+            self.attack()
 
         if not pressed_keys[K_RIGHT] and not pressed_keys[K_LEFT] and not pressed_keys[K_UP]:
             # if not moving sets animation frame to 0
@@ -210,14 +209,6 @@ class Player(pygame.sprite.Sprite):
                     ''' note to self for future 
                     use elif if you don't want the second condition to execute immediately after the first
                     '''
-        if self.rect.x <= 0:
-            self.rect.x = 0
-        if self.rect.x >= SCREEN_WIDTH - self.width:
-            self.rect.x = SCREEN_WIDTH - self.width
-        global game_state # has to be declared as global here for some reason
-        if self.rect.y > SCREEN_HEIGHT:
-            self.kill()
-            game_state = 'game-over'
 
         self.rect.x += dx
         self.rect.y += dy
@@ -237,6 +228,11 @@ class Player(pygame.sprite.Sprite):
             self.jumping = True
             self.yvelocity = -self.jump_velocity
 
+    def attack(self): # https://www.w3schools.com/python/ref_func_isinstance.asp
+        if not self.attacking:
+            attack = Attack(player.rect.x, player.rect.y, player.direction)
+            self.attacking = True
+
 
 class Attack(pygame.sprite.Sprite):
 
@@ -244,7 +240,7 @@ class Attack(pygame.sprite.Sprite):
         super(Attack, self).__init__()
         self.direction = direction
         all_sprites.add(self)
-        self.timetolive = 60 # how long the attack will exist before disappearing
+        self.timetolive = 30 # how long the attack will exist before disappearing
         self.timealive = 0
         # Make the attack face the same way as the player
         if self.direction == 1:
@@ -264,6 +260,7 @@ class Attack(pygame.sprite.Sprite):
             screen.blit(self.image, (self.rect.x, self.rect.y))
         else:
             all_sprites.remove(self)
+            player.attacking = False # Spaghetti code here, accessing and changing an attribute of a different class, don't think it's too much of a problem since Player and Attack are so closely connected
     
     def collide(self):
         pass
@@ -271,10 +268,10 @@ class Attack(pygame.sprite.Sprite):
 
 class StartMenu():
     def __init__(self):
-        screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
+        screen.fill((0, 0, 0))
         font = pygame.font.SysFont('arial', 40)
-        title = font.render('My Game', True, (0,0,0))
-        start_button = font.render('Press space to start', True, (0,0,0))
+        title = font.render('My Game', True, (255, 255, 255))
+        start_button = font.render('Press space to start', True, (255, 255, 255))
         screen.blit(title, (SCREEN_WIDTH/2 - title.get_width()/2, SCREEN_HEIGHT/2 - title.get_height()/2))
         screen.blit(start_button, (SCREEN_WIDTH/2 - start_button.get_width()/2, SCREEN_HEIGHT/2 + start_button.get_height()/2))
         pygame.display.update()
@@ -289,6 +286,7 @@ class GameOverMenu():
         screen.blit(start_button, (SCREEN_WIDTH/2 - start_button.get_width()/2, SCREEN_HEIGHT/2 + start_button.get_height()/2))
         pygame.display.update()
 
+player = Player(100, 200)
 
 all_sprites = pygame.sprite.Group() # A container class to hold and manage multiple Sprite objects. https://www.pygame.org/docs/ref/sprite.html#pygame.sprite.Group
 
@@ -299,6 +297,7 @@ game_state = 'start'
 running = True
 
 while running:
+
     if game_state == 'start':
         StartMenu()
         for event in pygame.event.get():
@@ -308,13 +307,14 @@ while running:
                     running = False
                 
                 if event.key == K_SPACE:
-                    player = Player(100, 200)
                     game_state = 'game'
 
             if event.type == QUIT:
                 running = False
 
-    elif game_state == 'game-over':
+    if game_state == 'game-over':
+        # there's currently no way for game state to be set to game over - once we add dying 
+        # it will take you here
         GameOverMenu()
         for event in pygame.event.get():
             if event.type == KEYDOWN:
@@ -325,13 +325,12 @@ while running:
                     game_state = 'start'
                 
                 if event.key == K_r:
-                    player = Player(100, 200)
                     game_state = 'game'
 
             if event.type == QUIT:
                 running = False
 
-    elif game_state == 'game':
+    if game_state == 'game':
         screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
 
         for event in pygame.event.get():
