@@ -93,7 +93,7 @@ class Player(pygame.sprite.Sprite):
         self.images_right = []
         self.images_left = []
         self.index = 0
-        self.counter = 0
+        self.walk_counter = 0
         self.direction = 1
         # loop below loads in images for animation
         for i in range(1, 4):
@@ -110,6 +110,7 @@ class Player(pygame.sprite.Sprite):
         self.jump_height = 60
         self.jump_count = 0
         self.jump_speed = 4
+        self.yvelocity = 0
         self.width = self.surf.get_width()
         self.height = self.surf.get_height()
         self.topleft = (self.rect.x, self.rect.y)
@@ -119,6 +120,8 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, pressed_keys):
         animation_speed = 15
+        dx = 0
+        dy = 0
 
         if pressed_keys[K_UP]:
             self.jump()
@@ -133,13 +136,13 @@ class Player(pygame.sprite.Sprite):
                 self.jump_count = 0
 
         if pressed_keys[K_LEFT]:
-            self.rect.move_ip(-2, 0)
-            self.counter += 1
+            dx -=2
+            self.walk_counter += 1
             self.direction = -1
 
         if pressed_keys[K_RIGHT]:
-            self.rect.move_ip(2, 0)
-            self.counter += 1
+            dx += 2
+            self.walk_counter += 1
             self.direction = 1
 
         if pressed_keys[K_SPACE]:
@@ -149,24 +152,30 @@ class Player(pygame.sprite.Sprite):
         if not pressed_keys[K_RIGHT] and not pressed_keys[K_LEFT] and not pressed_keys[K_UP]:
             # if not moving sets animation frame to 0
             self.index = 0
-            self.counter = 0
+            self.walk_counter = 0
             self.change_frames()
         
         # makes animation run at animation_speed
-        if self.counter > animation_speed:
-                self.counter = 0
+        if self.walk_counter > animation_speed:
+                self.walk_counter = 0
                 self.index += 1
                 if self.index >= len(self.images_right):
                     self.index = 0
                 self.change_frames()
 
-        self.fall()
-        # doesnt work might come back to it
+        self.yvelocity += 1
+        if self.yvelocity > 10:
+            self.yvelocity = 10
+        dy += self.yvelocity
+
         # # constantly updated variables for easy access to coordinates
-        # self.topleft = (self.rect.x, self.rect.y)
-        # self.topright = ((self.rect.x + self.width), self.rect.y)
-        # self.bottomleft = (self.rect.x, (self.rect.y - self.height))
-        # self.bottomright = ((self.rect.x + self.width), (self.rect.y - self.height))
+        self.topleft = (self.rect.x, self.rect.y)
+        self.topright = ((self.rect.x + self.width), self.rect.y)
+        self.bottomleft = (self.rect.x, (self.rect.y - self.height))
+        self.bottomright = ((self.rect.x + self.width), (self.rect.y - self.height))
+
+        self.rect.x += dx
+        self.rect.y += dy
 
     def change_frames(self, index = None):
         """Changes current player based on whether turned left or right.
@@ -184,13 +193,7 @@ class Player(pygame.sprite.Sprite):
     def jump(self):
         if not self.jumping:
             self.jumping = True
-
-    def fall(self):
-        for tile in world.tile_list:
-            if tile[1].colliderect(self.rect):
-                return
-        if not self.jumping:
-            self.rect.move_ip(0, 2) #made it 2 cause superslow falling was annoying me
+            self.yvelocity = -15
 
 
 class Attack(pygame.sprite.Sprite):
