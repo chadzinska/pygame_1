@@ -166,12 +166,8 @@ class Player(pygame.sprite.Sprite):
 
     def fall(self):
         for tile in world.tile_list:
-            curr_tile_rect = tile[1]
-            if curr_tile_rect.colliderect(self.rect):
-                if curr_tile_rect.collidepoint((self.rect.left, self.rect.bottom)):
-                    if self.rect.left < curr_tile_rect[0]:
-                        self.rect.left = curr_tile_rect[0]
-                    return
+            if tile[1].colliderect(self.rect):
+                return
         if not self.jumping:
             self.rect.move_ip(0, 2) #made it 2 cause superslow falling was annoying me
 
