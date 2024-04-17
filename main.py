@@ -23,7 +23,7 @@ fps = 60
 
 # define size variables
 tile_size = 50
-# player_size = (height, width)
+player_size = (45, 60)
 
 def draw_grid():
 	for line in range(0, 20):
@@ -33,7 +33,7 @@ def draw_grid():
 
 class World():
     def __init__(self, data):
-        self.tile_list = [] # List containing all the terrain information for the level
+        self.tile_list = [] # List containing all the terrain and its co-ordinates for the level
 
         row_count = 0
         for row in data:
@@ -100,7 +100,7 @@ class Player(pygame.sprite.Sprite):
         # loop below loads in images for animation
         for i in range(1, 4):
             img_right = pygame.image.load(f"images/guy{i}.png").convert()
-            img_right = pygame.transform.scale(img_right, (45, 60))
+            img_right = pygame.transform.scale(img_right, player_size) # Scale the image of the player to the size defined above
             img_left = pygame.transform.flip(img_right, True, False)
             img_right.set_colorkey((0, 0, 0), pygame.RLEACCEL) # makes the background of the player image transparent. RLEACCEL flag optimises this on lower-performing hardware (https://www.pygame.org/docs/ref/surface.html)
             img_left.set_colorkey((0, 0, 0), pygame.RLEACCEL)
@@ -139,8 +139,7 @@ class Player(pygame.sprite.Sprite):
             self.direction = 1
 
         if pressed_keys[K_SPACE]:
-            attack = Attack(player.rect.x, player.rect.y)
-            all_sprites.add(attack)
+            attack = Attack(player.rect.x, player.rect.y, player.direction)
 
         if not pressed_keys[K_RIGHT] and not pressed_keys[K_LEFT] and not pressed_keys[K_UP]:
             # if not moving sets animation frame to 0
@@ -201,21 +200,34 @@ class Player(pygame.sprite.Sprite):
 
 class Attack(pygame.sprite.Sprite):
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, direction):
         super(Attack, self).__init__()
-        self.image = pygame.image.load("images/attack.png").convert_alpha() #self.surf has to be self.image instead for draw function to work
+        self.direction = direction
+        all_sprites.add(self)
+        self.timetolive = 60 # how long the attack will exist before disappearing
+        self.timealive = 0
+        # Make the attack face the same way as the player
+        if self.direction == 1:
+            self.image = pygame.image.load("images/attack.png").convert_alpha() #self.surf has to be self.image instead for draw function to work
+            self.rect = self.image.get_rect()
+            self.rect.x = x + 25 # Makes the attack go in front of the player, instead of overlapping
+        else:
+            self.image = pygame.transform.flip(pygame.image.load("images/attack.png").convert_alpha(), True, False)
+            self.rect = self.image.get_rect()
+            self.rect.x = x - 25
         self.image.set_colorkey((0,0,0,0), pygame.RLEACCEL)
-        self.rect = self.image.get_rect()
-        self.rect.x = x
         self.rect.y = y
     
     def update(self):
-        self.collide()
-        # wait some time
-            # self.kill()
+        self.timealive += 1
+        if self.timealive < self.timetolive:
+            screen.blit(self.image, (self.rect.x, self.rect.y))
+        else:
+            all_sprites.remove(self)
     
     def collide(self):
-        pygame.sprite.spritecollide(self, all_sprites, True)
+        pass
+        #pygame.sprite.spritecollide(self, all_sprites, True) # if the attack 
 
 class StartMenu():
     def __init__(self):
@@ -239,7 +251,7 @@ class GameOverMenu():
 
 player = Player(100, 200)
 
-all_sprites = pygame.sprite.Group() 
+all_sprites = pygame.sprite.Group() # A container class to hold and manage multiple Sprite objects. https://www.pygame.org/docs/ref/sprite.html#pygame.sprite.Group
 
 world = World(world_data)
 
@@ -284,8 +296,6 @@ while running:
     if game_state == 'game':
         screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
 
-        all_sprites.draw(screen)
-
         for event in pygame.event.get():
 
             if event.type == KEYDOWN:
@@ -302,6 +312,8 @@ while running:
         all_sprites.update()
 
         screen.blit(player.surf, player.rect)
+
+        all_sprites.draw(screen)
 
         world.draw()
 
