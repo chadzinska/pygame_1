@@ -87,7 +87,7 @@ class Enemy(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, x, y):
         super(Player, self).__init__()
         # animation variables
         self.images_right = []
@@ -105,12 +105,16 @@ class Player(pygame.sprite.Sprite):
             self.images_left.append(img_left)
         self.surf = self.images_right[self.index]
         self.rect = self.surf.get_rect() 
-        # jumping variables
+        # jumping/movement variables
         self.jumping = False
-        self.jump_height = 60
+        self.jump_velocity = 15
         self.jump_count = 0
-        self.jump_speed = 4
         self.yvelocity = 0
+        self.walk_speed = 3
+        # where the player appears when the game starts based on the coordinates provided
+        self.rect.x = x
+        self.rect.y = y
+        # physical attributes
         self.width = self.surf.get_width()
         self.height = self.surf.get_height()
         self.topleft = (self.rect.x, self.rect.y)
@@ -127,21 +131,13 @@ class Player(pygame.sprite.Sprite):
             self.jump()
             self.change_frames(2) # jumping animation, using same as peak walking for now might change
 
-        if self.jumping:
-            if self.jump_count < self.jump_height:
-                self.rect.move_ip(0, -self.jump_speed)
-                self.jump_count += self.jump_speed
-            else:
-                self.jumping = False
-                self.jump_count = 0
-
         if pressed_keys[K_LEFT]:
-            dx -=2
+            dx -= self.walk_speed
             self.walk_counter += 1
             self.direction = -1
 
         if pressed_keys[K_RIGHT]:
-            dx += 2
+            dx += self.walk_speed
             self.walk_counter += 1
             self.direction = 1
 
@@ -163,19 +159,38 @@ class Player(pygame.sprite.Sprite):
                     self.index = 0
                 self.change_frames()
 
+        # gravity
         self.yvelocity += 1
         if self.yvelocity > 10:
-            self.yvelocity = 10
+            self.yvelocity = 10 # terminal velocity, you can't fall quicker than 10 pixels per frame
         dy += self.yvelocity
 
-        # # constantly updated variables for easy access to coordinates
-        self.topleft = (self.rect.x, self.rect.y)
-        self.topright = ((self.rect.x + self.width), self.rect.y)
-        self.bottomleft = (self.rect.x, (self.rect.y - self.height))
-        self.bottomright = ((self.rect.x + self.width), (self.rect.y - self.height))
+        # constantly updated variables for easy access to coordinates
+        # not necessary at the moment but won't delete yet in case they end up being useful
+        # self.topleft = (self.rect.x, self.rect.y)
+        # self.topright = ((self.rect.x + self.width), self.rect.y)
+        # self.bottomleft = (self.rect.x, (self.rect.y - self.height))
+        # self.bottomright = ((self.rect.x + self.width), (self.rect.y - self.height))
+
+        # collision detection with terrain
+        for tile in world.tile_list:
+            # check collision on x-axis ie. walking into a wall
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                dx = 0
+            # check collision on y-axis
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                if self.yvelocity < 0: # this checks whether you're jumping, meaning you've hit the block from below
+                    dy = tile[1].bottom # - self.rect.top
+                    self.yvelocity = 0
+                if self.yvelocity >= 0: # this checks if you're standing ontop of, or jumping down onto a block
+                    dy = tile[1].top -self.rect.bottom
+                    self.yvelocity = 0
+                    self.jumping = False
 
         self.rect.x += dx
         self.rect.y += dy
+
+        print(self.rect.top)
 
     def change_frames(self, index = None):
         """Changes current player based on whether turned left or right.
@@ -193,7 +208,7 @@ class Player(pygame.sprite.Sprite):
     def jump(self):
         if not self.jumping:
             self.jumping = True
-            self.yvelocity = -15
+            self.yvelocity = -self.jump_velocity
 
 
 class Attack(pygame.sprite.Sprite):
@@ -216,7 +231,7 @@ class Attack(pygame.sprite.Sprite):
 
 
 
-player = Player()
+player = Player(100, 200)
 
 all_sprites = pygame.sprite.Group() 
 
