@@ -49,7 +49,7 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                 elif tile == 3:
-                    enemy = Enemy((col_count * tile_size + 9), (row_count * tile_size + 17))  #integers make enemy be in bottom middle of tile
+                    enemy = Enemy((col_count * tile_size), (row_count * tile_size))
                     all_sprites.add(enemy)
                 col_count += 1
             row_count += 1
@@ -62,7 +62,7 @@ class World():
 
 world_data = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -218,7 +218,7 @@ class Attack(pygame.sprite.Sprite):
 
     def __init__(self, x, y):
         super(Attack, self).__init__()
-        self.image = pygame.image.load("images/attack.png").convert_alpha()
+        self.image = pygame.image.load("images/attack.png").convert_alpha() #self.surf has to be self.image instead for draw function to work
         self.image.set_colorkey((0,0,0,0), pygame.RLEACCEL)
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -226,102 +226,48 @@ class Attack(pygame.sprite.Sprite):
     
     def update(self):
         self.collide()
+        # wait some time
+            # self.kill()
     
     def collide(self):
         pygame.sprite.spritecollide(self, all_sprites, True)
 
 
 
-
 player = Player(100, 200)
-
-class StartMenu():
-    def __init__(self):
-        screen.fill((0, 0, 0))
-        font = pygame.font.SysFont('arial', 40)
-        title = font.render('My Game', True, (255, 255, 255))
-        start_button = font.render('Press space to start', True, (255, 255, 255))
-        screen.blit(title, (SCREEN_WIDTH/2 - title.get_width()/2, SCREEN_HEIGHT/2 - title.get_height()/2))
-        screen.blit(start_button, (SCREEN_WIDTH/2 - start_button.get_width()/2, SCREEN_HEIGHT/2 + start_button.get_height()/2))
-        pygame.display.update()
-
-class GameOverMenu():
-    def __init__(self):
-        screen.fill((0, 0, 0))
-        font = pygame.font.SysFont('arial', 40)
-        title = font.render('Game Over', True, (255, 255, 255))
-        start_button = font.render('Press r to restart, space to return to menu', True, (255, 255, 255))
-        screen.blit(title, (SCREEN_WIDTH/2 - title.get_width()/2, SCREEN_HEIGHT/2 - title.get_height()/2))
-        screen.blit(start_button, (SCREEN_WIDTH/2 - start_button.get_width()/2, SCREEN_HEIGHT/2 + start_button.get_height()/2))
-        pygame.display.update()
-
 
 all_sprites = pygame.sprite.Group() 
 
 world = World(world_data)
 
-game_state = 'start'
 # Game loop. The code from here on is mainly event handling.
 running = True
 
 while running:
 
-    if game_state == 'start':
-        StartMenu()
-        for event in pygame.event.get():
+    screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
 
-            if event.type == KEYDOWN:
-                if event.key == K_ESCAPE:
-                    running = False
-                
-                if event.key == K_SPACE:
-                    game_state = 'game'
+    all_sprites.draw(screen)
 
-            if event.type == QUIT:
+    for event in pygame.event.get():
+
+        if event.type == KEYDOWN:
+            if event.key == K_ESCAPE:
                 running = False
 
-    if game_state == 'game-over':
-        # there's currently no way for game state to be set to game over - once we add dying 
-        # it will take you here
-        GameOverMenu()
-        for event in pygame.event.get():
-            if event.type == KEYDOWN:
-                if event.key == K_ESCAPE:
-                    running = False
-                
-                if event.key == K_SPACE:
-                    game_state = 'start'
-                
-                if event.key == K_r:
-                    game_state = 'game'
+        if event.type == QUIT:
+            running = False
 
-            if event.type == QUIT:
-                running = False
+    pressed_keys = pygame.key.get_pressed()
 
-    if game_state == 'game':
-        screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
+    player.update(pressed_keys)
 
-        all_sprites.draw(screen)
+    all_sprites.update()
 
-        for event in pygame.event.get():
+    screen.blit(player.surf, player.rect)
 
-            if event.type == KEYDOWN:
-                if event.key == K_ESCAPE:
-                    running = False
+    world.draw()
 
-            if event.type == QUIT:
-                running = False
-
-        pressed_keys = pygame.key.get_pressed()
-
-        player.update(pressed_keys)
-
-        all_sprites.update()
-
-        screen.blit(player.surf, player.rect)
-
-        world.draw()
-
-        draw_grid()
+    draw_grid()
 
     pygame.display.flip()
