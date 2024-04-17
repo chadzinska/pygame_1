@@ -13,11 +13,12 @@ pygame.display.set_caption("My First Game!")
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-# load images
+# load terrain images
 background_image = pygame.image.load("images/background.png")
 dirt_image = pygame.image.load("images/dirt.png")
 grass_image = pygame.image.load("images/grass.png")
 
+# Sets the refresh rate for the screen. the "while running" loop iterates fps times per second
 fps = 60
 
 # define size variables
@@ -32,7 +33,7 @@ def draw_grid():
 
 class World():
     def __init__(self, data):
-        self.tile_list = []
+        self.tile_list = [] # List containing all the terrain information for the level
 
         row_count = 0
         for row in data:
@@ -49,18 +50,18 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                 elif tile == 3:
-                    enemy = Enemy((col_count * tile_size), (row_count * tile_size))
+                    enemy = Enemy((col_count * tile_size + 8), (row_count * tile_size + 15))
                     all_sprites.add(enemy)
                 col_count += 1
             row_count += 1
 
 
-    def draw(self):
+    def draw(self): # Draws each tile at its respective x/y co-ordinate
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
         
 
-world_data = [
+world_data = [ # A 16x9 grid representing the level terrain. Each tile has an instruction telling the game what kind of terrain it is
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -92,12 +93,14 @@ class Player(pygame.sprite.Sprite):
         # animation variables
         self.images_right = []
         self.images_left = []
+        self.animation_speed = 15
         self.index = 0
         self.walk_counter = 0
         self.direction = 1
         # loop below loads in images for animation
         for i in range(1, 4):
             img_right = pygame.image.load(f"images/guy{i}.png").convert()
+            img_right = pygame.transform.scale(img_right, (45, 60))
             img_left = pygame.transform.flip(img_right, True, False)
             img_right.set_colorkey((0, 0, 0), pygame.RLEACCEL) # makes the background of the player image transparent. RLEACCEL flag optimises this on lower-performing hardware (https://www.pygame.org/docs/ref/surface.html)
             img_left.set_colorkey((0, 0, 0), pygame.RLEACCEL)
@@ -116,13 +119,8 @@ class Player(pygame.sprite.Sprite):
         # physical attributes
         self.width = self.surf.get_width()
         self.height = self.surf.get_height()
-        self.topleft = (self.rect.x, self.rect.y)
-        self.topright = ((self.rect.x + self.width), self.rect.y)
-        self.bottomleft = (self.rect.x, (self.rect.y - self.height))
-        self.bottomright = ((self.rect.x + self.width), (self.rect.y - self.height))
 
     def update(self, pressed_keys):
-        animation_speed = 15
         dx = 0
         dy = 0
 
@@ -150,8 +148,8 @@ class Player(pygame.sprite.Sprite):
             self.walk_counter = 0
             self.change_frames()
         
-        # makes animation run at animation_speed
-        if self.walk_counter > animation_speed:
+        # makes animation run at self.animation_speed
+        if self.walk_counter > self.animation_speed:
                 self.walk_counter = 0
                 self.index += 1
                 if self.index >= len(self.images_right):
@@ -163,13 +161,6 @@ class Player(pygame.sprite.Sprite):
         if self.yvelocity > 10:
             self.yvelocity = 10 # terminal velocity, you can't fall quicker than 10 pixels per frame
         dy += self.yvelocity
-
-        # constantly updated variables for easy access to coordinates
-        # not necessary at the moment but won't delete yet in case they end up being useful
-        # self.topleft = (self.rect.x, self.rect.y)
-        # self.topright = ((self.rect.x + self.width), self.rect.y)
-        # self.bottomleft = (self.rect.x, (self.rect.y - self.height))
-        # self.bottomright = ((self.rect.x + self.width), (self.rect.y - self.height))
 
         # collision detection with terrain
         for tile in world.tile_list:
@@ -201,9 +192,6 @@ class Player(pygame.sprite.Sprite):
             self.surf = self.images_right[index]
         else:
             self.surf = self.images_left[index]
-
-    def attack(self):
-        pass
 
     def jump(self):
         if not self.jumping:
