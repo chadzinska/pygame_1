@@ -8,7 +8,7 @@ pygame.init()
 
 # define screen information
 SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 450
+SCREEN_HEIGHT = 600
 pygame.display.set_caption("My First Game!")
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -90,16 +90,19 @@ class World():
             screen.blit(tile[0], tile[1])
         
 
-world_data = [ # A 16x9 grid representing the level terrain. Each tile has an instruction telling the game what kind of terrain it is
+world_data = [ # A 16x12 grid representing the level terrain. Each tile has an instruction telling the game what kind of terrain it is
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [2, 2, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 2, 0, 2, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [2, 2, 0, 0, 0, 0, 2, 2, 2, 0, 2, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 2, 2],
-    [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 1, 1],
+    [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 2],
+    [1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 2, 2, 2, 2, 2, 1],
 ]
 
 class Enemy(pygame.sprite.Sprite):
@@ -192,6 +195,8 @@ class Player(pygame.sprite.Sprite):
         if self.yvelocity > 10:
             self.yvelocity = 10 # terminal velocity, you can't fall quicker than 10 pixels per frame
         dy += self.yvelocity
+        if self.yvelocity > 0 and not self.jumping:
+            self.jumping = True
 
         # collision detection with terrain
         for tile in world.tile_list:
