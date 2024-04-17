@@ -276,10 +276,10 @@ class Attack(pygame.sprite.Sprite):
 
 class StartMenu():
     def __init__(self):
-        screen.fill((0, 0, 0))
+        screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
         font = pygame.font.SysFont('arial', 40)
-        title = font.render('My Game', True, (255, 255, 255))
-        start_button = font.render('Press space to start', True, (255, 255, 255))
+        title = font.render('My Game', True, (0,0,0))
+        start_button = font.render('Press space to start', True, (0,0,0))
         screen.blit(title, (SCREEN_WIDTH/2 - title.get_width()/2, SCREEN_HEIGHT/2 - title.get_height()/2))
         screen.blit(start_button, (SCREEN_WIDTH/2 - start_button.get_width()/2, SCREEN_HEIGHT/2 + start_button.get_height()/2))
         pygame.display.update()
@@ -294,7 +294,6 @@ class GameOverMenu():
         screen.blit(start_button, (SCREEN_WIDTH/2 - start_button.get_width()/2, SCREEN_HEIGHT/2 + start_button.get_height()/2))
         pygame.display.update()
 
-player = Player(100, 200)
 
 all_sprites = pygame.sprite.Group() # A container class to hold and manage multiple Sprite objects. https://www.pygame.org/docs/ref/sprite.html#pygame.sprite.Group
 
@@ -315,14 +314,13 @@ while running:
                     running = False
                 
                 if event.key == K_SPACE:
+                    player = Player(100, 200)
                     game_state = 'game'
 
             if event.type == QUIT:
                 running = False
 
-    if game_state == 'game-over':
-        # there's currently no way for game state to be set to game over - once we add dying 
-        # it will take you here
+    elif game_state == 'game-over':
         GameOverMenu()
         for event in pygame.event.get():
             if event.type == KEYDOWN:
@@ -333,12 +331,13 @@ while running:
                     game_state = 'start'
                 
                 if event.key == K_r:
+                    player = Player(100, 200)
                     game_state = 'game'
 
             if event.type == QUIT:
                 running = False
 
-    if game_state == 'game':
+    elif game_state == 'game':
         screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
 
         for event in pygame.event.get():
