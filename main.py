@@ -232,7 +232,25 @@ class Attack(pygame.sprite.Sprite):
     def collide(self):
         pygame.sprite.spritecollide(self, all_sprites, True)
 
+class StartMenu():
+    def __init__(self):
+        screen.fill((0, 0, 0))
+        font = pygame.font.SysFont('arial', 40)
+        title = font.render('My Game', True, (255, 255, 255))
+        start_button = font.render('Press space to start', True, (255, 255, 255))
+        screen.blit(title, (SCREEN_WIDTH/2 - title.get_width()/2, SCREEN_HEIGHT/2 - title.get_height()/2))
+        screen.blit(start_button, (SCREEN_WIDTH/2 - start_button.get_width()/2, SCREEN_HEIGHT/2 + start_button.get_height()/2))
+        pygame.display.update()
 
+class GameOverMenu():
+    def __init__(self):
+        screen.fill((0, 0, 0))
+        font = pygame.font.SysFont('arial', 40)
+        title = font.render('Game Over', True, (255, 255, 255))
+        start_button = font.render('Press r to restart, space to return to menu', True, (255, 255, 255))
+        screen.blit(title, (SCREEN_WIDTH/2 - title.get_width()/2, SCREEN_HEIGHT/2 - title.get_height()/2))
+        screen.blit(start_button, (SCREEN_WIDTH/2 - start_button.get_width()/2, SCREEN_HEIGHT/2 + start_button.get_height()/2))
+        pygame.display.update()
 
 player = Player(100, 200)
 
@@ -240,34 +258,68 @@ all_sprites = pygame.sprite.Group()
 
 world = World(world_data)
 
+game_state = 'start'
 # Game loop. The code from here on is mainly event handling.
 running = True
 
 while running:
 
-    screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
+    if game_state == 'start':
+        StartMenu()
+        for event in pygame.event.get():
 
-    all_sprites.draw(screen)
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    running = False
+                
+                if event.key == K_SPACE:
+                    game_state = 'game'
 
-    for event in pygame.event.get():
-
-        if event.type == KEYDOWN:
-            if event.key == K_ESCAPE:
+            if event.type == QUIT:
                 running = False
 
-        if event.type == QUIT:
-            running = False
+    if game_state == 'game-over':
+        # there's currently no way for game state to be set to game over - once we add dying 
+        # it will take you here
+        GameOverMenu()
+        for event in pygame.event.get():
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    running = False
+                
+                if event.key == K_SPACE:
+                    game_state = 'start'
+                
+                if event.key == K_r:
+                    game_state = 'game'
 
-    pressed_keys = pygame.key.get_pressed()
+            if event.type == QUIT:
+                running = False
 
-    player.update(pressed_keys)
+    if game_state == 'game':
+        screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
 
-    all_sprites.update()
+        all_sprites.draw(screen)
 
-    screen.blit(player.surf, player.rect)
+        for event in pygame.event.get():
 
-    world.draw()
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    running = False
 
-    draw_grid()
+            if event.type == QUIT:
+                running = False
+
+        pressed_keys = pygame.key.get_pressed()
+
+        player.update(pressed_keys)
+
+        all_sprites.update()
+
+        screen.blit(player.surf, player.rect)
+
+        world.draw()
+
+        draw_grid()
 
     pygame.display.flip()
