@@ -38,7 +38,7 @@ class World():
         for row in data:
             col_count = 0
             for tile in row:
-                if tile >= 1:
+                if tile == 1 or tile == 2:
                     if tile == 1:
                         img = pygame.transform.scale(dirt_image, (tile_size, tile_size))
                     elif tile == 2:
@@ -48,6 +48,9 @@ class World():
                     img_rect.y = row_count * tile_size
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
+                elif tile == 3:
+                    enemy = Enemy((col_count * tile_size), (row_count * tile_size))
+                    all_sprites.add(enemy)
                 col_count += 1
             row_count += 1
 
@@ -65,11 +68,23 @@ world_data = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2],
+    [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 2, 2],
     [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 1, 1],
 ]
 
-world = World(world_data)
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Enemy, self).__init__()
+        self.image = pygame.image.load("images/enemy1_r.png").convert_alpha() #self.surf has to be self.image instead for draw function to work
+        self.image.set_colorkey((0,0,0,0), pygame.RLEACCEL)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.health = 5
+    
+    def take_damage(self, damage):
+        self.health -= damage
+
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -105,7 +120,7 @@ class Player(pygame.sprite.Sprite):
     def update(self, pressed_keys):
         animation_speed = 15
 
-        if pressed_keys[K_SPACE]:
+        if pressed_keys[K_UP]:
             self.jump()
             self.change_frames(2) # jumping animation, using same as peak walking for now might change
 
@@ -127,7 +142,11 @@ class Player(pygame.sprite.Sprite):
             self.counter += 1
             self.direction = 1
 
-        if not pressed_keys[K_RIGHT] and not pressed_keys[K_LEFT] and not pressed_keys[K_SPACE]:
+        if pressed_keys[K_SPACE]:
+            attack = Attack(player.rect.x, player.rect.y)
+            all_sprites.add(attack)
+
+        if not pressed_keys[K_RIGHT] and not pressed_keys[K_LEFT] and not pressed_keys[K_UP]:
             # if not moving sets animation frame to 0
             self.index = 0
             self.counter = 0
@@ -158,7 +177,9 @@ class Player(pygame.sprite.Sprite):
             self.surf = self.images_right[index]
         else:
             self.surf = self.images_left[index]
-    
+
+    def attack(self):
+        pass
 
     def jump(self):
         if not self.jumping:
@@ -171,9 +192,32 @@ class Player(pygame.sprite.Sprite):
         if not self.jumping:
             self.rect.move_ip(0, 2) #made it 2 cause superslow falling was annoying me
 
+
+class Attack(pygame.sprite.Sprite):
+
+    def __init__(self, x, y):
+        super(Attack, self).__init__()
+        self.image = pygame.image.load("images/attack.png").convert_alpha() #self.surf has to be self.image instead for draw function to work
+        self.image.set_colorkey((0,0,0,0), pygame.RLEACCEL)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+    
+    def update(self):
+        self.collide()
+        # wait some time
+            # self.kill()
+    
+    def collide(self):
+        pygame.sprite.spritecollide(self, all_sprites, True)
+
+
+
 player = Player()
 
-all_sprites = pygame.sprite.Group()
+all_sprites = pygame.sprite.Group() 
+
+world = World(world_data)
 
 # Game loop. The code from here on is mainly event handling.
 running = True
@@ -181,6 +225,8 @@ running = True
 while running:
 
     screen.blit(pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
+
+    all_sprites.draw(screen)
 
     for event in pygame.event.get():
 
@@ -194,6 +240,8 @@ while running:
     pressed_keys = pygame.key.get_pressed()
 
     player.update(pressed_keys)
+
+    all_sprites.update()
 
     screen.blit(player.surf, player.rect)
 
