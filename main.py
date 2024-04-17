@@ -2,7 +2,7 @@ import pygame
 
 clock = pygame.time.Clock()
 
-from pygame.locals import *
+from pygame.locals import * # Prevents us from having to add a "pygame." prefix to all keys
 
 pygame.init()
 
@@ -25,10 +25,39 @@ fps = 60
 tile_size = 50
 player_size = (45, 60)
 
+# functions/classes that are helpful for game creation, not necessarily used in the actual game
 def draw_grid():
 	for line in range(0, 20):
 		pygame.draw.line(screen, (255, 255, 255), (0, line * tile_size), (SCREEN_WIDTH, line * tile_size))
 		pygame.draw.line(screen, (255, 255, 255), (line * tile_size, 0), (line * tile_size, SCREEN_HEIGHT))
+
+
+''' A debugger that can be optionally enabled to display any game information either
+    on a button press, or at a specified interval, default being 4 times per second '''
+class Debugger():
+    def __init__(self, man_enabled, auto_enabled, auto_rate = 15):
+        self.man_enabled = man_enabled
+        self.auto_enabled = auto_enabled
+        self.rate = auto_rate
+        self.autocounter = 0
+
+    def debug_manual(self):
+        print("whatever you want to check")
+
+    def debug_auto(self):
+        if self.autocounter < self.rate:
+                self.autocounter += 1
+        else:
+            print("whatever you want to check")
+            self.autocounter = 0
+
+    def update(self, pressed_keys):
+        if self.auto_enabled == True:
+            self.debug_auto()
+        if pressed_keys[K_z] and self.man_enabled == True:
+            self.debug_manual()
+    
+debugger = Debugger(True, False)
 
 
 class World():
@@ -109,10 +138,12 @@ class Player(pygame.sprite.Sprite):
         self.surf = self.images_right[self.index]
         self.rect = self.surf.get_rect() 
         # jumping/movement variables
-        self.jumping = False
         self.jump_velocity = 15
         self.yvelocity = 0
         self.walk_speed = 3
+        # action variables
+        self.jumping = False
+        self.attacking = False # Don't mind this, going to come back to it to add a cooldown to attacking
         # where the player appears when the game starts based on the coordinates provided
         self.rect.x = x
         self.rect.y = y
@@ -318,5 +349,8 @@ while running:
         world.draw()
 
         draw_grid()
+        debugger.update(pressed_keys)
+
+        clock.tick(fps) # ensures that this loop is repeated fps times per second.
 
     pygame.display.flip()
