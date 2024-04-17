@@ -108,7 +108,6 @@ class Player(pygame.sprite.Sprite):
         # jumping/movement variables
         self.jumping = False
         self.jump_velocity = 15
-        self.jump_count = 0
         self.yvelocity = 0
         self.walk_speed = 3
         # where the player appears when the game starts based on the coordinates provided
