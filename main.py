@@ -193,8 +193,6 @@ class Player(pygame.sprite.Sprite):
         self.rect.x += dx
         self.rect.y += dy
 
-        print(self.rect.top)
-
     def change_frames(self, index = None):
         """Changes current player based on whether turned left or right.
         Optional index argument, if none provided self.index is used"""
