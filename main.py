@@ -179,13 +179,16 @@ class Player(pygame.sprite.Sprite):
                 dx = 0
             # check collision on y-axis
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                if self.yvelocity < 0: # this checks whether you're jumping, meaning you've hit the block from below
-                    dy = tile[1].bottom # - self.rect.top
+                if self.yvelocity < 0: # checks whether you're on an upward trajectory ie. jumping into  block from above
+                    dy = tile[1].bottom - self.rect.top
                     self.yvelocity = 0
-                if self.yvelocity >= 0: # this checks if you're standing ontop of, or jumping down onto a block
-                    dy = tile[1].top -self.rect.bottom
+                elif self.yvelocity >= 0: # this checks if you're standing on top of, or jumping down onto a block
+                    dy = tile[1].top - self.rect.bottom
                     self.yvelocity = 0
                     self.jumping = False
+                    ''' note to self for future 
+                    use elif if you don't want the second condition to execute immediately after the first
+                    '''
 
         self.rect.x += dx
         self.rect.y += dy
