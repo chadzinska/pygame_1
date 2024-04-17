@@ -42,13 +42,13 @@ class Debugger():
         self.autocounter = 0
 
     def debug_manual(self):
-        print(player.rect.x)
+        print("whatever you want to check")
 
     def debug_auto(self):
         if self.autocounter < self.rate:
                 self.autocounter += 1
         else:
-            print(player.rect.y, SCREEN_HEIGHT)
+            print("whatever you want to check")
             self.autocounter = 0
 
     def update(self, pressed_keys):
@@ -57,7 +57,7 @@ class Debugger():
         if pressed_keys[K_z] and self.man_enabled == True:
             self.debug_manual()
     
-debugger = Debugger(False, False)
+debugger = Debugger(True, False)
 
 
 class World():
@@ -150,7 +150,7 @@ class Player(pygame.sprite.Sprite):
         # animation variables
         self.images_right = []
         self.images_left = []
-        self.animation_speed = 5 #lower is faster
+        self.animation_speed = 5
         self.index = 0
         self.walk_counter = 0
         self.direction = 1
@@ -187,7 +187,6 @@ class Player(pygame.sprite.Sprite):
             
         
 
-
     def update(self, pressed_keys):
         dx = 0
         dy = 0
@@ -207,7 +206,7 @@ class Player(pygame.sprite.Sprite):
             self.direction = 1
 
         if pressed_keys[K_SPACE]:
-            attack = Attack(player.rect.x, player.rect.y, player.direction)
+            self.attack()
 
         if not pressed_keys[K_RIGHT] and not pressed_keys[K_LEFT] and not pressed_keys[K_UP]:
             # if not moving sets animation frame to 0
@@ -255,7 +254,7 @@ class Player(pygame.sprite.Sprite):
                     ''' note to self for future 
                     use elif if you don't want the second condition to execute immediately after the first
                     '''
-        if self.rect.x <= 0:
+        if self.rect.x <= 0: # Establishes borders on the game map
             self.rect.x = 0
         if self.rect.x >= SCREEN_WIDTH - self.width:
             self.rect.x = SCREEN_WIDTH - self.width
@@ -282,6 +281,11 @@ class Player(pygame.sprite.Sprite):
             self.jumping = True
             self.yvelocity = -self.jump_velocity
 
+    def attack(self): # https://www.w3schools.com/python/ref_func_isinstance.asp
+        if not self.attacking:
+            attack = Attack(player.rect.x, player.rect.y, player.direction)
+            self.attacking = True
+
 
 class Attack(pygame.sprite.Sprite):
 
@@ -289,7 +293,7 @@ class Attack(pygame.sprite.Sprite):
         super(Attack, self).__init__()
         self.direction = direction
         all_sprites.add(self)
-        self.timetolive = 60 # how long the attack will exist before disappearing
+        self.timetolive = 30 # how long the attack will exist before disappearing
         self.timealive = 0
         # Make the attack face the same way as the player
         if self.direction == 1:
@@ -309,6 +313,7 @@ class Attack(pygame.sprite.Sprite):
             screen.blit(self.image, (self.rect.x, self.rect.y))
         else:
             all_sprites.remove(self)
+            player.attacking = False # Spaghetti code here, accessing and changing an attribute of a different class, don't think it's too much of a problem since Player and Attack are so closely connected
     
     def collide(self):
         pass
@@ -355,6 +360,7 @@ game_state = 'start'
 running = True
 
 while running:
+
     if game_state == 'start':
         StartMenu()
         for event in pygame.event.get():
