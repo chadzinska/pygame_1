@@ -1,4 +1,5 @@
 import pygame
+import random
 
 clock = pygame.time.Clock()
 
@@ -80,7 +81,6 @@ class World():
                     self.tile_list.append(tile)
                 elif tile == 3:
                     enemy = Enemy((col_count * tile_size + 8), (row_count * tile_size + 15))
-                    all_sprites.add(enemy)
                 col_count += 1
             row_count += 1
 
@@ -108,12 +108,57 @@ world_data = [ # A 16x12 grid representing the level terrain. Each tile has an i
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super(Enemy, self).__init__()
-        self.image = pygame.image.load("images/enemy1_r.png").convert_alpha() #self.surf has to be self.image instead for draw function to work
-        self.image.set_colorkey((0,0,0,0), pygame.RLEACCEL)
-        self.rect = self.image.get_rect()
+        all_sprites.add(self)
+        self.surf = pygame.image.load("images/enemy1_r.png").convert_alpha() #self.surf has to be self.image instead for draw function to work
+        self.surf.set_colorkey((0,0,0,0), pygame.RLEACCEL)
+        self.rect = self.surf.get_rect()
         self.rect.x = x
         self.rect.y = y
         self.health = 5
+        self.jump_velocity = 15
+        self.yvelocity = 0
+        self.jumping = False
+        self.width = self.surf.get_width()
+        self.height = self.surf.get_height()
+
+    def update(self):
+        dy = 0
+        dx = 0
+
+        x = random.randint(0,99)
+        if x == 1:
+            self.jump()
+        
+        # gravity
+        self.yvelocity += 1
+        if self.yvelocity > 10:
+            self.yvelocity = 10 # terminal velocity, you can't fall quicker than 10 pixels per frame
+        dy += self.yvelocity
+
+
+        for tile in world.tile_list:
+            # check collision on x-axis ie. walking into a wall
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                dx = 0
+            # check collision on y-axis
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                if self.yvelocity < 0: # checks whether you're on an upward trajectory ie. jumping into  block from above
+                    dy = tile[1].bottom - self.rect.top
+                    self.yvelocity = 0
+                elif self.yvelocity >= 0: # this checks if you're standing on top of, or jumping down onto a block
+                    dy = tile[1].top - self.rect.bottom
+                    self.yvelocity = 0
+                    self.jumping = False
+
+        self.rect.y += dy
+
+        
+
+
+    def jump(self):
+        if not self.jumping:
+            self.jumping = True
+            self.yvelocity = -self.jump_velocity       
     
     def take_damage(self, damage):
         self.health -= damage
@@ -195,7 +240,7 @@ class Player(pygame.sprite.Sprite):
             self.yvelocity = 10 # terminal velocity, you can't fall quicker than 10 pixels per frame
         dy += self.yvelocity
         if self.yvelocity > 0 and not self.jumping:
-            self.jumping = True
+            self.jumping = True # bit awkward, but prevents you from jumping while falling when you haven't jumped
 
         # collision detection with terrain
         for tile in world.tile_list:
@@ -247,12 +292,13 @@ class Player(pygame.sprite.Sprite):
             self.attacking = True
 
 
-class Attack(pygame.sprite.Sprite):
+class Attack():
+    #pygame.sprite.Sprite
+    #super(Attack, self).__init__()
 
     def __init__(self, x, y, direction):
-        super(Attack, self).__init__()
         self.direction = direction
-        all_sprites.add(self)
+        #all_sprites.add(self)
         self.timetolive = 30 # how long the attack will exist before disappearing
         self.timealive = 0
         # Make the attack face the same way as the player
@@ -362,7 +408,8 @@ while running:
 
         screen.blit(player.surf, player.rect)
 
-        all_sprites.draw(screen)
+        for sprite in all_sprites:
+            screen.blit(sprite.surf, sprite.rect)
 
         world.draw()
 
