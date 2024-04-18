@@ -49,7 +49,8 @@ class Debugger():
         if self.autocounter < self.rate:
                 self.autocounter += 1
         else:
-            print("whatever you want to check")
+            player.health -= 1
+            print(player.health)
             self.autocounter = 0
 
     def update(self, pressed_keys):
@@ -58,7 +59,7 @@ class Debugger():
         if pressed_keys[K_z] and self.man_enabled == True:
             self.debug_manual()
     
-debugger = Debugger(True, False)
+debugger = Debugger(False, False, 120)
 
 
 class World():
@@ -104,7 +105,7 @@ world_data = [ # A 16x12 grid representing the level terrain. Each tile has an i
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [2, 2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 0, 2],
-    [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
 ]
 
 class Enemy(pygame.sprite.Sprite):
@@ -122,6 +123,7 @@ class Enemy(pygame.sprite.Sprite):
         self.jumping = False
         self.width = self.surf.get_width()
         self.height = self.surf.get_height()
+
 
     def update(self):
         dy = 0
@@ -154,6 +156,8 @@ class Enemy(pygame.sprite.Sprite):
 
         self.rect.y += dy
 
+        self.hit()
+
         
 
 
@@ -163,29 +167,18 @@ class Enemy(pygame.sprite.Sprite):
             self.yvelocity = -self.jump_velocity       
     
     def damage(self, damage):
-        print("ow")
+        print("hit!")
         self.health -= damage
         if self.health == 0:
             self.kill()
 
-class Heart(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super(Heart, self).__init__()
-        self.surf = pygame.image.load("images/heart.png").convert_alpha()
-        self.surf.set_colorkey((0,0,0,0), pygame.RLEACCEL)
-        self.rect = self.surf.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        all_sprites.add(self)
+    def hit(self):
+        if player.rect.colliderect(self.rect):
+            player.damage()
 
-class Exit(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super(Exit, self).__init__()
-        self.surf = pygame.image.load("images/door.png").convert()
-        self.rect = self.surf.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        all_sprites.add(self)
+
+
+
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -228,6 +221,7 @@ class Player(pygame.sprite.Sprite):
         self.heart_1 = Heart(SCREEN_WIDTH - 100, 5)
         self.heart_2 = Heart(SCREEN_WIDTH - 65, 5)
         self.heart_3 = Heart(SCREEN_WIDTH - 30, 5)
+        self.sore = False # A variable checking whether the player has taken damage recently
             
         
 
@@ -258,13 +252,6 @@ class Player(pygame.sprite.Sprite):
             self.walk_counter = 0
             self.change_frames()
         
-        #health
-        if self.health < 3:
-            self.heart_3.image = pygame.image.load("images/heart_gone.png").convert_alpha()    
-            if self.health < 2:
-                self.heart_2.image = pygame.image.load("images/heart_gone.png").convert_alpha()
-        
-
         # makes animation run at self.animation_speed
         if self.walk_counter > self.animation_speed:
                 self.walk_counter = 0
@@ -307,6 +294,19 @@ class Player(pygame.sprite.Sprite):
             self.kill()
             game_state = 'game-over'
 
+        #health
+        if self.health < 3:
+            self.heart_3.surf = pygame.image.load("images/heart_gone.png").convert_alpha()
+            if self.health < 2:
+                self.heart_2.surf = pygame.image.load("images/heart_gone.png").convert_alpha()
+                if self.health < 1:
+                    game_state = 'game-over'
+        if self.sore:
+            if self.sorecounter < 120:
+                self.sorecounter += 1
+            else:
+                self.sore = False
+
         self.rect.x += dx
         self.rect.y += dy
 
@@ -325,11 +325,16 @@ class Player(pygame.sprite.Sprite):
             self.jumping = True
             self.yvelocity = -self.jump_velocity
 
-    def attack(self): # https://www.w3schools.com/python/ref_func_isinstance.asp
+    def attack(self):
         if not self.attacking:
             attack = Attack(player.rect.x, player.rect.y, player.direction)
             self.attacking = True
 
+    def damage(self):
+        if not self.sore:
+            self.health -= 1
+            self.sore = True # Starts the counter making the player invincible for a short time
+            self.sorecounter = 0
 
 class Attack(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
@@ -359,13 +364,32 @@ class Attack(pygame.sprite.Sprite):
             attacks.remove(self)
             player.attacking = False # Spaghetti code here, accessing and changing an attribute of a different class, don't think it's too much of a problem since Player and Attack are so closely connected
 
-        self.hit()
+        self.hit() # Call the function checking whether an enemy has been hit
     
     def hit(self):
         for sprite in all_sprites:
-            if sprite.rect.colliderect(self.rect) and self.active == True: # Check if you're hitting 
-                sprite.damage(1)
-                self.active = False
+            if sprite.rect.colliderect(self.rect) and self.active == True: # Check if you're hitting an enemy
+                sprite.damage(1) # Damage the enemy
+                self.active = False # One attack can only damage an enemy once, instead of hitting it once every frame
+
+class Heart(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Heart, self).__init__()
+        self.surf = pygame.image.load("images/heart.png").convert_alpha()
+        self.surf.set_colorkey((0,0,0,0), pygame.RLEACCEL)
+        self.rect = self.surf.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        all_sprites.add(self)
+
+class Exit(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Exit, self).__init__()
+        self.surf = pygame.image.load("images/door.png").convert()
+        self.rect = self.surf.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        all_sprites.add(self)
 
 class StartMenu():
     def __init__(self):
