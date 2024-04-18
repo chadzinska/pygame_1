@@ -95,16 +95,16 @@ class World():
 world_data = [ # A 16x12 grid representing the level terrain. Each tile has an instruction telling the game what kind of terrain it is
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [2, 2, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 2, 0, 2, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [2, 2, 0, 0, 0, 0, 2, 2, 2, 0, 2, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 2],
-    [1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 2, 2, 2, 2, 2, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [2, 2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 0, 2],
+    [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
 ]
 
 class Enemy(pygame.sprite.Sprite):
@@ -162,15 +162,18 @@ class Enemy(pygame.sprite.Sprite):
             self.jumping = True
             self.yvelocity = -self.jump_velocity       
     
-    def take_damage(self, damage):
+    def damage(self, damage):
+        print("ow")
         self.health -= damage
+        if self.health == 0:
+            self.kill()
 
 class Heart(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super(Heart, self).__init__()
-        self.image = pygame.image.load("images/heart.png").convert_alpha()
-        self.image.set_colorkey((0,0,0,0), pygame.RLEACCEL)
-        self.rect = self.image.get_rect()
+        self.surf = pygame.image.load("images/heart.png").convert_alpha()
+        self.surf.set_colorkey((0,0,0,0), pygame.RLEACCEL)
+        self.rect = self.surf.get_rect()
         self.rect.x = x
         self.rect.y = y
         all_sprites.add(self)
@@ -178,8 +181,8 @@ class Heart(pygame.sprite.Sprite):
 class Exit(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super(Exit, self).__init__()
-        self.image = pygame.image.load("images/door.png").convert()
-        self.rect = self.image.get_rect()
+        self.surf = pygame.image.load("images/door.png").convert()
+        self.rect = self.surf.get_rect()
         self.rect.x = x
         self.rect.y = y
         all_sprites.add(self)
@@ -187,6 +190,7 @@ class Exit(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super(Player, self).__init__()
+        # all_sprites.add(self)
         # animation variables
         self.images_right = []
         self.images_left = []
@@ -211,7 +215,7 @@ class Player(pygame.sprite.Sprite):
         self.walk_speed = 3
         # action variables
         self.jumping = False
-        self.attacking = False # Don't mind this, going to come back to it to add a cooldown to attacking
+        self.attacking = False
         # where the player appears when the game starts based on the coordinates provided
         self.rect.x = x
         self.rect.y = y
@@ -327,15 +331,14 @@ class Player(pygame.sprite.Sprite):
             self.attacking = True
 
 
-class Attack():
-    #pygame.sprite.Sprite
-    #super(Attack, self).__init__()
-
+class Attack(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
+        super(Attack, self).__init__()
         self.direction = direction
-        #all_sprites.add(self)
+        attacks.add(self)
         self.timetolive = 30 # how long the attack will exist before disappearing
         self.timealive = 0
+        self.active = True
         # Make the attack face the same way as the player
         if self.direction == 1:
             self.image = pygame.image.load("images/attack.png").convert_alpha() #self.surf has to be self.image instead for draw function to work
@@ -353,12 +356,16 @@ class Attack():
         if self.timealive < self.timetolive:
             screen.blit(self.image, (self.rect.x, self.rect.y))
         else:
-            all_sprites.remove(self)
+            attacks.remove(self)
             player.attacking = False # Spaghetti code here, accessing and changing an attribute of a different class, don't think it's too much of a problem since Player and Attack are so closely connected
+
+        self.hit()
     
-    def collide(self):
-        pass
-        #pygame.sprite.spritecollide(self, all_sprites, True) # if the attack 
+    def hit(self):
+        for sprite in all_sprites:
+            if sprite.rect.colliderect(self.rect) and self.active == True: # Check if you're hitting 
+                sprite.damage(1)
+                self.active = False
 
 class StartMenu():
     def __init__(self):
@@ -392,6 +399,8 @@ class WonMenu():
 
 
 all_sprites = pygame.sprite.Group() # A container class to hold and manage multiple Sprite objects. https://www.pygame.org/docs/ref/sprite.html#pygame.sprite.Group
+attacks = pygame.sprite.Group()
+enemies = pygame.sprite.Group()
 
 world = World(world_data)
 exit = Exit(0, 25)
@@ -469,16 +478,16 @@ while running:
         player.update(pressed_keys)
 
         all_sprites.update()
-
-        screen.blit(player.surf, player.rect)
+        attacks.update()
 
         for sprite in all_sprites:
             screen.blit(sprite.surf, sprite.rect)
 
-        world.draw()
-        screen.blit(exit.image, exit.rect)
+        screen.blit(player.surf, player.rect)
 
-        draw_grid()
+        world.draw()
+
+        # draw_grid()
         debugger.update(pressed_keys)
 
         clock.tick(fps) # ensures that this loop is repeated fps times per second.
