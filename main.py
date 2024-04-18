@@ -27,7 +27,7 @@ tile_size = 50
 player_size = (45, 60)
 
 # functions/classes that are helpful for game creation, not necessarily used in the actual game
-def draw_grid():
+def draw_grid(): # Draws gridlines over the level
 	for line in range(0, 20):
 		pygame.draw.line(screen, (255, 255, 255), (0, line * tile_size), (SCREEN_WIDTH, line * tile_size))
 		pygame.draw.line(screen, (255, 255, 255), (line * tile_size, 0), (line * tile_size, SCREEN_HEIGHT))
@@ -67,7 +67,7 @@ class World():
         self.tile_list = [] # List containing all the terrain and its co-ordinates for the level
 
         row_count = 0
-        for row in data:
+        for row in data: # iterating through each row
             col_count = 0
             for tile in row:
                 if tile == 1 or tile == 2:
@@ -83,6 +83,11 @@ class World():
                 elif tile == 3:
                     enemy = Enemy((col_count * tile_size + 8), (row_count * tile_size + 15))
                     all_sprites.add(enemy)
+                elif tile == 4:
+                    strengthboost = Strengthboost((col_count * tile_size), (row_count * tile_size))
+                elif tile == 5:
+                    jumpboost = Jumpboost((col_count * tile_size), (row_count * tile_size))
+                
 
                 col_count += 1
             row_count += 1
@@ -104,7 +109,7 @@ world_data = [ # A 16x12 grid representing the level terrain. Each tile has an i
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [2, 2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 0, 2],
+    [2, 2, 0, 0, 5, 0, 0, 3, 0, 4, 0, 5, 3, 0, 0, 2],
     [1, 1, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
 ]
 
@@ -112,18 +117,17 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super(Enemy, self).__init__()
         all_sprites.add(self)
-        self.surf = pygame.image.load("images/enemy1_r.png").convert_alpha() #self.surf has to be self.image instead for draw function to work
+        self.surf = pygame.image.load("images/enemy1_r.png").convert_alpha()
         self.surf.set_colorkey((0,0,0,0), pygame.RLEACCEL)
         self.rect = self.surf.get_rect()
         self.rect.x = x
         self.rect.y = y
         self.health = 5
-        self.jump_velocity = 15
+        self.jump_velocity = 12
         self.yvelocity = 0
         self.jumping = False
         self.width = self.surf.get_width()
         self.height = self.surf.get_height()
-
 
     def update(self):
         dy = 0
@@ -158,25 +162,19 @@ class Enemy(pygame.sprite.Sprite):
 
         self.hit()
 
-        
-
-
     def jump(self):
         if not self.jumping:
             self.jumping = True
-            self.yvelocity = -self.jump_velocity       
+            self.yvelocity = -self.jump_velocity
     
-    def damage(self, damage):
-        print("hit!")
+    def damage(self, damage): # what to do if the enemy is hit
         self.health -= damage
         if self.health == 0:
             self.kill()
 
-    def hit(self):
+    def hit(self): # if in contact with the player, hurt the player
         if player.rect.colliderect(self.rect):
             player.damage()
-
-
 
 
 
@@ -206,9 +204,10 @@ class Player(pygame.sprite.Sprite):
         self.jump_velocity = 15
         self.yvelocity = 0
         self.walk_speed = 3
-        # action variables
+        # temporary states
         self.jumping = False
         self.attacking = False
+        self.sore = False # A variable checking whether the player has taken damage recently
         # where the player appears when the game starts based on the coordinates provided
         self.rect.x = x
         self.rect.y = y
@@ -216,12 +215,17 @@ class Player(pygame.sprite.Sprite):
         self.width = self.surf.get_width()
         self.height = self.surf.get_height()
 
-        #health
+        # health
         self.health = 3
         self.heart_1 = Heart(SCREEN_WIDTH - 100, 5)
         self.heart_2 = Heart(SCREEN_WIDTH - 65, 5)
         self.heart_3 = Heart(SCREEN_WIDTH - 30, 5)
-        self.sore = False # A variable checking whether the player has taken damage recently
+
+        self.strength = 1
+
+        # powerups
+        self.strengthboosted = False
+        self.jumpboosted = False
             
         
 
@@ -282,6 +286,7 @@ class Player(pygame.sprite.Sprite):
                     dy = tile[1].top - self.rect.bottom
                     self.yvelocity = 0
                     self.jumping = False
+                    self.doublejumping = False
                     ''' note to self for future 
                     use elif if you don't want the second condition to execute immediately after the first
                     '''
@@ -324,6 +329,10 @@ class Player(pygame.sprite.Sprite):
         if not self.jumping:
             self.jumping = True
             self.yvelocity = -self.jump_velocity
+        # double jump logic. pretty complex but each condition on its own makes sense
+        elif self.jumping and self.jumpboosted and self.yvelocity > self.yvelocity // 3 and not self.doublejumping:
+            self.doublejumping = True
+            self.yvelocity = -self.jump_velocity * 2 // 3 # found 2/3 of the original jump velocity to feel right for the double jump
 
     def attack(self):
         if not self.attacking:
@@ -335,6 +344,45 @@ class Player(pygame.sprite.Sprite):
             self.health -= 1
             self.sore = True # Starts the counter making the player invincible for a short time
             self.sorecounter = 0
+
+
+
+# powerups
+''' These should inherit from a powerup class, as they are almost identical, 
+    but we couldn't get it working '''
+class Strengthboost(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Strengthboost, self).__init__()
+        self.surf = pygame.image.load("images/strength_potion.png").convert_alpha()
+        self.surf.set_colorkey((0,0,0,0), pygame.RLEACCEL)
+        self.rect = self.surf.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        all_sprites.add(self)
+
+    def update(self):
+        if player.rect.colliderect(self.rect):
+            player.strengthboosted = True
+            player.strength = 5
+            all_sprites.remove(self)
+            strengthboost_display = Strengthboost(SCREEN_WIDTH - 100, 40) # Show next to hearts that the player has the powerup
+
+class Jumpboost(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Jumpboost, self).__init__()
+        self.surf = pygame.image.load("images/jump_boost.png").convert_alpha()
+        self.surf.set_colorkey((0,0,0,0), pygame.RLEACCEL)
+        self.rect = self.surf.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        all_sprites.add(self)
+
+    def update(self):
+        if player.rect.colliderect(self.rect):
+            player.jumpboosted = True
+            player.jump_velocity = 20
+            all_sprites.remove(self)
+            jumpboost_display = Jumpboost(SCREEN_WIDTH - 60, 42)
 
 class Attack(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
@@ -369,7 +417,7 @@ class Attack(pygame.sprite.Sprite):
     def hit(self):
         for sprite in all_sprites:
             if sprite.rect.colliderect(self.rect) and self.active == True: # Check if you're hitting an enemy
-                sprite.damage(1) # Damage the enemy
+                sprite.damage(player.strength) # Damage the enemy
                 self.active = False # One attack can only damage an enemy once, instead of hitting it once every frame
 
 class Heart(pygame.sprite.Sprite):
@@ -425,6 +473,7 @@ class WonMenu():
 all_sprites = pygame.sprite.Group() # A container class to hold and manage multiple Sprite objects. https://www.pygame.org/docs/ref/sprite.html#pygame.sprite.Group
 attacks = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
+powerups = pygame.sprite.Group()
 
 world = World(world_data)
 exit = Exit(0, 25)
