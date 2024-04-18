@@ -37,29 +37,28 @@ def draw_grid(): # Draws gridlines over the level
     on a button press, or at a specified interval, default being 4 times per second '''
 class Debugger():
     def __init__(self, man_enabled, auto_enabled, auto_rate = 15):
-        self.man_enabled = man_enabled
-        self.auto_enabled = auto_enabled
-        self.rate = auto_rate
+        self.man_enabled = man_enabled # whether manual debug is enabled
+        self.auto_enabled = auto_enabled # whether automatic debug is enabled
+        self.rate = auto_rate # how often the automatic debug runs, default is 15
         self.autocounter = 0
 
     def debug_manual(self):
-        print("whatever you want to check")
+        print("whatever you want to check") # eg. printing player health when z is pressed was helpful before we got the hearts working
 
     def debug_auto(self):
-        if self.autocounter < self.rate:
+        if self.autocounter < self.rate:  # wait until the specified interval to run
                 self.autocounter += 1
         else:
-            player.health -= 1
-            print(player.health)
-            self.autocounter = 0
+            print("whatever you want to check") # eg. using player.rect.x, player.rect.y was helpful here for debugging collision
+            self.autocounter = 0 # reset the timer
 
-    def update(self, pressed_keys):
+    def update(self, pressed_keys): # every frame, check whether to call either function
         if self.auto_enabled == True:
             self.debug_auto()
         if pressed_keys[K_z] and self.man_enabled == True:
             self.debug_manual()
     
-debugger = Debugger(False, False, 120)
+debugger = Debugger(False, False, 120) # initialise the debugger and its parameters
 
 
 class World():
@@ -69,8 +68,8 @@ class World():
         row_count = 0
         for row in data: # iterating through each row
             col_count = 0
-            for tile in row:
-                if tile == 1 or tile == 2:
+            for tile in row: # check every number in the current row
+                if tile == 1 or tile == 2: # handling terrain
                     if tile == 1:
                         img = pygame.transform.scale(dirt_image, (tile_size, tile_size))
                     elif tile == 2:
@@ -80,104 +79,39 @@ class World():
                     img_rect.y = row_count * tile_size
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
-                elif tile == 3:
-                    enemy = Enemy((col_count * tile_size + 8), (row_count * tile_size + 15))
-                    all_sprites.add(enemy)
-                elif tile == 4:
-                    strengthboost = Strengthboost((col_count * tile_size), (row_count * tile_size))
-                elif tile == 5:
-                    jumpboost = Jumpboost((col_count * tile_size), (row_count * tile_size))
-                
-
+                elif tile == 3 or tile == 4 or tile == 5: # handling entities
+                    if tile == 3:
+                        enemy = Enemy((col_count * tile_size + 8), (row_count * tile_size + 15))
+                        all_sprites.add(enemy)
+                    elif tile == 4:
+                        strengthboost = Strengthboost((col_count * tile_size), (row_count * tile_size))
+                    elif tile == 5:
+                        jumpboost = Jumpboost((col_count * tile_size), (row_count * tile_size))
                 col_count += 1
             row_count += 1
-
 
     def draw(self): # Draws each tile at its respective x/y co-ordinate
         for tile in self.tile_list:
             screen.blit(tile[0], tile[1])
         
 
-world_data = [ # A 16x12 grid representing the level terrain. Each tile has an instruction telling the game what kind of terrain it is
+world_data = [ # A 16x12 grid representing the level. Each tile has an instruction telling the game what it is (terrain, enemy, powerup)
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0],
+    [0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 2, 2, 2, 2, 0, 0, 2, 2, 0, 3, 4, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [2, 2, 0, 0, 5, 0, 0, 3, 0, 4, 0, 5, 3, 0, 0, 2],
-    [1, 1, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2],
+    [2, 2, 2, 2, 2, 0, 0, 0, 3, 0, 0, 0, 3, 2, 1, 1],
+    [1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 1, 1, 1],
 ]
+# Key - 1:Dirt 2:Grass 3:Enemy 4:Strength boost 5:Jump boost
 
-class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super(Enemy, self).__init__()
-        all_sprites.add(self)
-        self.surf = pygame.image.load("images/enemy1_r.png").convert_alpha()
-        self.surf.set_colorkey((0,0,0,0), pygame.RLEACCEL)
-        self.rect = self.surf.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.health = 5
-        self.jump_velocity = 12
-        self.yvelocity = 0
-        self.jumping = False
-        self.width = self.surf.get_width()
-        self.height = self.surf.get_height()
-
-    def update(self):
-        dy = 0
-        dx = 0
-
-        x = random.randint(0,99)
-        if x == 1:
-            self.jump()
-        
-        # gravity
-        self.yvelocity += 1
-        if self.yvelocity > 10:
-            self.yvelocity = 10 # terminal velocity, you can't fall quicker than 10 pixels per frame
-        dy += self.yvelocity
-
-
-        for tile in world.tile_list:
-            # check collision on x-axis ie. walking into a wall
-            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
-                dx = 0
-            # check collision on y-axis
-            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                if self.yvelocity < 0: # checks whether you're on an upward trajectory ie. jumping into  block from above
-                    dy = tile[1].bottom - self.rect.top
-                    self.yvelocity = 0
-                elif self.yvelocity >= 0: # this checks if you're standing on top of, or jumping down onto a block
-                    dy = tile[1].top - self.rect.bottom
-                    self.yvelocity = 0
-                    self.jumping = False
-
-        self.rect.y += dy
-
-        self.hit()
-
-    def jump(self):
-        if not self.jumping:
-            self.jumping = True
-            self.yvelocity = -self.jump_velocity
-    
-    def damage(self, damage): # what to do if the enemy is hit
-        self.health -= damage
-        if self.health == 0:
-            self.kill()
-
-    def hit(self): # if in contact with the player, hurt the player
-        if player.rect.colliderect(self.rect):
-            player.damage()
-
-
-
+# entities
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super(Player, self).__init__()
@@ -280,7 +214,7 @@ class Player(pygame.sprite.Sprite):
             # check collision on y-axis
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
                 if self.yvelocity < 0: # checks whether you're on an upward trajectory ie. jumping into  block from above
-                    dy = tile[1].bottom - self.rect.top
+                    dy = tile[1].bottom - self.rect.top # changes dx so you'll exactly hit the bottom
                     self.yvelocity = 0
                 elif self.yvelocity >= 0: # this checks if you're standing on top of, or jumping down onto a block
                     dy = tile[1].top - self.rect.bottom
@@ -342,10 +276,71 @@ class Player(pygame.sprite.Sprite):
     def damage(self):
         if not self.sore:
             self.health -= 1
+            print("Ouch!")
             self.sore = True # Starts the counter making the player invincible for a short time
             self.sorecounter = 0
 
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Enemy, self).__init__()
+        all_sprites.add(self)
+        self.surf = pygame.image.load("images/enemy1_r.png").convert_alpha()
+        self.surf.set_colorkey((0,0,0,0), pygame.RLEACCEL)
+        self.rect = self.surf.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.health = 5
+        self.jump_velocity = 12
+        self.yvelocity = 0
+        self.jumping = False
+        self.width = self.surf.get_width()
+        self.height = self.surf.get_height()
 
+    def update(self):
+        dy = 0
+        dx = 0
+
+        x = random.randint(0,99) # at any given frame, enemy has a 1 in 100 chance of jumping. doesn't change much but adds some fun randomness
+        if x == 1:
+            self.jump()
+        
+        # gravity
+        self.yvelocity += 1
+        if self.yvelocity > 10:
+            self.yvelocity = 10 # terminal velocity, you can't fall quicker than 10 pixels per frame
+        dy += self.yvelocity
+
+        # see terrain collision in Player for comments
+        for tile in world.tile_list:
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                dx = 0
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                if self.yvelocity < 0:
+                    dy = tile[1].bottom - self.rect.top
+                    self.yvelocity = 0
+                elif self.yvelocity >= 0:
+                    dy = tile[1].top - self.rect.bottom
+                    self.yvelocity = 0
+                    self.jumping = False
+
+        self.rect.y += dy
+
+        self.hit() # Check every frame if the enemy hit the player
+
+    def jump(self): # Same as player without the double jump capability
+        if not self.jumping:
+            self.jumping = True
+            self.yvelocity = -self.jump_velocity
+    
+    def damage(self, damage): # what to do if the enemy is hit
+        self.health -= damage
+        print("Pow!")
+        if self.health == 0:
+            self.kill() # enemy sprite is removed if it has no health
+
+    def hit(self): # if in contact with the player, hurt the player
+        if player.rect.colliderect(self.rect):
+            player.damage()
 
 # powerups
 ''' These should inherit from a powerup class, as they are almost identical, 
@@ -476,7 +471,7 @@ enemies = pygame.sprite.Group()
 powerups = pygame.sprite.Group()
 
 world = World(world_data)
-exit = Exit(0, 25)
+exit = Exit(SCREEN_WIDTH - 150, 25)
 
 game_state = 'start'
 # Game loop. The code from here on is mainly event handling.
@@ -493,7 +488,7 @@ while running:
                     running = False
                 
                 if event.key == K_SPACE:
-                    player = Player(100, 200)
+                    player = Player(50, 400)
                     game_state = 'game'
 
             if event.type == QUIT:
